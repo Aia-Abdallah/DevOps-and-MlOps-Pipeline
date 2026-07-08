@@ -43,7 +43,7 @@ A production-grade MLOps pipeline built around **Qwen2.5-1.5B** Large Language M
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Part A — Model Serving Architecture
 
@@ -57,11 +57,11 @@ A production-grade MLOps pipeline built around **Qwen2.5-1.5B** Large Language M
 │  └──────────────┘      │  • Artifact Store        │  │
 │                         └─────────────────────────┘  │
 │                                                      │
-│  ┌─────────────┐        ┌──────────────────────┐    │
-│  │ vLLM V1     │        │ vLLM V2 (GPTQ 4-bit) │    │
-│  │ Qwen2.5-1.5B│        │ Qwen2.5-1.5B-GPTQ    │    │
-│  │ fp16 3GB   │        │ 4-bit 1.08GB         │    │
-│  └──────┬──────┘        └──────────┬───────────┘    │
+│  ┌─────────────┐        ┌──────────────────────┐     │
+│  │ vLLM V1     │        │ vLLM V2 (GPTQ 4-bit) │     │
+│  │ Qwen2.5-1.5B│        │ Qwen2.5-1.5B-GPTQ    │     │
+│  │ fp16 3GB   │        │ 4-bit 1.08GB          │     │
+│  └──────┬──────┘        └──────────┬───────────┘     │
 │         │     80%  |  20%          │                 │
 │         └──────────┼───────────────┘                 │
 │                ┌───▼────┐                            │
@@ -69,35 +69,35 @@ A production-grade MLOps pipeline built around **Qwen2.5-1.5B** Large Language M
 │                │ Router  │ FastAPI                   │
 │                └───┬─────┘                           │
 │                    │ predictions.jsonl               │
-│                ┌───▼──────────┐                     │
+│                ┌───▼──────────┐                      │
 │                │Drift Detector│──▶ Evidently :8085   │
-│                └──────────────┘                     │
-└─────────────────────────────────────────────────────┘
+│                └──────────────┘                      │
+└───────────────────────────────────────────────────── ┘
 
 shell
 
 ### Part B — Kubernetes Architecture
 
 ┌────────────────────────────────────────────────────────┐
-│                 cisc814-cluster2 (k3d)                  │
+│                 cisc814-cluster2 (k3d)                 │
 │                                                        │
 │  namespace: default                                    │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │  Argo Rollout: sentiment-model                    │ │
-│  │                                                   │ │
-│  │  [stable: V1]──80%──┐                            │ │
-│  │  [canary: V2]──20%──┴──▶ Service :8000           │ │
-│  │                                                   │ │
-│  │  Canary Steps:                                    │ │
-│  │  20% → pause → 50% → pause → 80% → pause → 100%  │ │
-│  └──────────────────────────────────────────────────┘ │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Argo Rollout: sentiment-model                   │  │
+│  │                                                  │  │
+│  │  [stable: V1]──80%──┐                            │  │
+│  │  [canary: V2]──20%──┴──▶ Service :8000           │  │
+│  │                                                  │  │
+│  │  Canary Steps:                                   │  │
+│  │  20% → pause → 50% → pause → 80% → pause → 100%  │  
+│  └──────────────────────────────────────────────────┘  │
 │                                                        │
 │  namespace: monitoring                                 │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │  Prometheus ──scrapes── Pushgateway               │ │
-│  │  Grafana    ──queries──▶ Prometheus               │ │
-│  │  Dashboard: drift score, traffic, latency         │ │
-│  └──────────────────────────────────────────────────┘ │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Prometheus ──scrapes── Pushgateway              │  │
+│  │  Grafana    ──queries──▶ Prometheus              │  │
+│  │  Dashboard: drift score, traffic, latency        │  │
+│  └──────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────┘
 
 yaml
