@@ -1,0 +1,31 @@
+# Stable service — points to the stable (V1) ReplicaSet managed by the Rollout
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentiment-model-stable
+  labels:
+    app: sentiment-model
+spec:
+  type: ClusterIP
+  selector:
+    app: sentiment-model
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+---
+# Canary service — points to the canary (V2) ReplicaSet during a rollout
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentiment-model-canary
+  labels:
+    app: sentiment-model
+spec:
+  type: ClusterIP
+  selector:
+    app: sentiment-model
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http

@@ -1,0 +1,13 @@
+runner:
+  labels:
+    - "ubuntu-latest:docker://gitea/runner-images:ubuntu-latest"
+    - "ubuntu-22.04:docker://gitea/runner-images:ubuntu-22.04"
+    - "ubuntu-20.04:docker://gitea/runner-images:ubuntu-20.04"
+
+container:
+  network: cisc814-network
+  # Pass the host Docker socket into job containers so build-and-push works
+  docker_host: "unix:///var/run/docker.sock"
+  options: "--add-host host.docker.internal:host-gateway"
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock

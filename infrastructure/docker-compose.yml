@@ -1,0 +1,226 @@
+# CISC-814 Local Development Environment
+# Docker Compose stack for course infrastructure prototyping
+#
+# This provides a local development environment that mirrors
+# the course Kubernetes cluster for testing and experimentation.
+#
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f
+#   docker compose down -v  # with volume cleanup (CAREFUL!)
+#
+# Access:
+#   Gitea:      http://host.docker.internal:3000
+#   ArgoCD:     http://localhost:8080
+#   MLflow:     http://localhost:5050
+#   Registry:   http://localhost:5001
+
+services:
+  # =============================================================================
+  # Git Server - Gitea
+  # =============================================================================
+  gitea:
+    image: gitea/gitea:1.22
+    container_name: cisc814-gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=gitea-db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
+      - GITEA__server__ROOT_URL=http://host.docker.internal:3000
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__actions__ENABLED=true
+      - GITEA__actions__ARTIFACTS_ENABLED=true
+    restart: unless-stopped
+    networks:
+      - cisc814-network
+    volumes:
+      - gitea-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3000:3000"
+      - "2222:22"
+    depends_on:
+      - gitea-db
+
+  gitea-db:
+    image: postgres:16-alpine
+    container_name: cisc814-gitea-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=gitea
+      - POSTGRES_DB=gitea
+    networks:
+      - cisc814-network
+    volumes:
+      - gitea-db-data:/var/lib/postgresql/data
+
+  # Gitea Actions Runner
+  gitea-runner:
+    image: gitea/act_runner:latest
+    container_name: cisc814-gitea-runner
+    restart: unless-stopped
+    environment:
+      - GITEA_INSTANCE_URL=http://gitea:3000
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_TOKEN:-}
+      - GITEA_RUNNER_NAME=local-runner
+      - CONFIG_FILE=/config.yaml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./gitea/act_runner_config.yaml:/config.yaml:ro
+      - gitea-runner-data:/data
+    networks:
+      - cisc814-network
+    depends_on:
+      - gitea
+
+  # =============================================================================
+  # Container Registry
+  # =============================================================================
+  registry:
+    image: registry:2
+    container_name: cisc814-registry
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    networks:
+      - cisc814-network
+    volumes:
+      - registry-data:/var/lib/registry
+    environment:
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin=[http://localhost:5002]
+      - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods=[HEAD,GET,OPTIONS,DELETE]
+      - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers=[Authorization,Accept,Cache-Control]
+      - REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers=[Docker-Content-Digest]
+
+  registry-ui:
+    image: joxit/docker-registry-ui:latest
+    container_name: cisc814-registry-ui
+    restart: unless-stopped
+    ports:
+      - "5002:80"
+    environment:
+      - REGISTRY_TITLE=CISC-814 Registry
+      - NGINX_PROXY_PASS_URL=http://registry:5000
+      - SINGLE_REGISTRY=true
+    networks:
+      - cisc814-network
+    depends_on:
+      - registry
+
+  # =============================================================================
+  # MLflow Tracking Server
+  # =============================================================================
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: cisc814-mlflow
+    restart: unless-stopped
+    ports:
+      - "5050:5000"
+    networks:
+      - cisc814-network
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=postgresql://mlflow:mlflow@mlflow-db:5432/mlflow
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://mlflow:mlflow@mlflow-db:5432/mlflow
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    depends_on:
+      mlflow-db:
+        condition: service_healthy
+
+  mlflow-db:
+    image: postgres:16-alpine
+    container_name: cisc814-mlflow-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=mlflow
+      - POSTGRES_PASSWORD=mlflow
+      - POSTGRES_DB=mlflow
+    networks:
+      - cisc814-network
+    volumes:
+      - mlflow-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    container_name: cisc814-otel-collector
+    restart: unless-stopped
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Prometheus metrics
+    networks:
+      - cisc814-network
+    volumes:
+      - ./otel/otel-config.yml:/etc/otelcol-contrib/config.yaml:ro
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+
+  # =============================================================================
+  # ArgoCD (for GitOps demonstration)
+  # Note: Full ArgoCD requires Kubernetes. This provides API server only.
+  # =============================================================================
+  # For local K8s testing, use k3d or minikube with ArgoCD installed.
+  # This placeholder shows the concept.
+
+  # argocd:
+  #   image: quay.io/argoproj/argocd:v2.12.0
+  #   container_name: cisc814-argocd
+  #   # ArgoCD requires Kubernetes API access
+  #   # Use k3d for local Kubernetes: k3d cluster create cisc814
+
+  # =============================================================================
+  # Evidently AI (Drift Monitoring)
+  # =============================================================================
+  evidently:
+    image: evidently/evidently-service:latest
+    container_name: cisc814-evidently
+    restart: unless-stopped
+    ports:
+      - "8085:8000"
+    networks:
+      - cisc814-network
+    volumes:
+      - evidently-data:/app/data
+    environment:
+      - EVIDENTLY_WORKSPACE=/app/data
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  cisc814-network:
+    driver: bridge
+    name: cisc814-network
+    # k3d per-team clusters connect to this network to reach shared services
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  gitea-data:
+  gitea-db-data:
+  gitea-runner-data:
+  registry-data:
+  mlflow-artifacts:
+  mlflow-db-data:
+  evidently-data:

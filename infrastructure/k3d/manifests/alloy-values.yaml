@@ -1,0 +1,41 @@
+# Alloy collects logs; Loki stores them; Grafana queries them.
+# This chart install is application-neutral. App-specific log selection lives
+# in separate PodLogs manifests, such as visitor-counter-podlogs.yaml.
+controller:
+  type: daemonset
+
+alloy:
+  enableReporting: false
+  extraEnv:
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  configMap:
+    content: |-
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+      loki.source.podlogs "applications" {
+        forward_to    = [loki.write.local.receiver]
+        tail_from_end = true
+
+        node_filter {
+          enabled = true
+        }
+      }
+
+      loki.write "local" {
+        endpoint {
+          url = "http://loki-gateway.loki.svc.cluster.local/loki/api/v1/push"
+        }
+      }

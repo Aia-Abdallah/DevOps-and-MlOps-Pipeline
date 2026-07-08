@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+venv-*/
+*.egg-info/
+
+# Models (كبيرة جداً - مترفعيهاش)
+qwen2.5-1.5b-gptq-4bit/
+*.bin
+*.safetensors
+*.gguf
+*.pt
+*.pth
+
+# MLflow local
+mlruns/
+mlflow.db
+
+# Logs
+*.log
+
+# Env
+.env
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,50 @@
+# k3s containerd config template — nvidia as default runtime
+version = 3
+root = "{{ .NodeConfig.Containerd.Root }}"
+state = "{{ .NodeConfig.Containerd.State }}"
+
+[grpc]
+  address = "{{ .NodeConfig.Containerd.Address }}"
+
+[plugins.'io.containerd.internal.v1.opt']
+  path = "{{ .NodeConfig.Containerd.Opt }}"
+
+[plugins.'io.containerd.grpc.v1.cri']
+  stream_server_address = "127.0.0.1"
+  stream_server_port = "10010"
+
+[plugins.'io.containerd.cri.v1.runtime']
+  enable_selinux = {{ .NodeConfig.SELinux }}
+  enable_unprivileged_ports = true
+  enable_unprivileged_icmp = true
+  device_ownership_from_security_context = false
+
+[plugins.'io.containerd.cri.v1.images']
+  snapshotter = "overlayfs"
+  disable_snapshot_annotations = true
+
+[plugins.'io.containerd.cri.v1.images'.pinned_images]
+  sandbox = "rancher/mirrored-pause:3.6"
+
+[plugins.'io.containerd.cri.v1.runtime'.cni]
+  bin_dir = "{{ .NodeConfig.AgentConfig.CNIBinDir }}"
+  conf_dir = "{{ .NodeConfig.AgentConfig.CNIConfDir }}"
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd]
+  default_runtime_name = "nvidia"
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runc]
+  runtime_type = "io.containerd.runc.v2"
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runc.options]
+  SystemdCgroup = false
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.nvidia]
+  runtime_type = "io.containerd.runc.v2"
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.nvidia.options]
+  BinaryName = "/usr/bin/nvidia-container-runtime"
+  SystemdCgroup = false
+
+[plugins.'io.containerd.cri.v1.images'.registry]
+  config_path = "{{ .NodeConfig.Containerd.Registry }}"
