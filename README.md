@@ -48,23 +48,28 @@ A production-grade MLOps pipeline built around **Qwen2.5-1.5B** Large Language M
 
 ### Part A — Model Serving Architecture
 
+```
 [few_shot.py]  ──►  [MLflow Server]
 [quantize.py]  ──►    - Experiment Tracking
 [register.py]  ──►    - Model Registry
-- Artifact Store
+                       - Artifact Store
 
-[vLLM V1: Qwen2.5-1.5B fp16 3GB ] ──── 80% ──┐
-├──► [Traffic Router :8000]
-[vLLM V2: Qwen2.5-1.5B GPTQ 1GB ] ──── 20% ──┘
-│
-▼
-[Drift Detector]
-│
-▼
-[Evidently AI :8085]
+[vLLM V1: Qwen2.5-1.5B fp16 ~3GB] ── 80% ──┐
+                                              ├──► [Traffic Router :8000]
+[vLLM V2: Qwen2.5-1.5B GPTQ ~1GB] ── 20% ──┘
+                                                        │
+                                                        ▼
+                                             [Drift Detector]
+                                                        │
+                                                        ▼
+                                             [Evidently AI :8085]
+```
 
+---
 
 ### Part B — Kubernetes Architecture
+
+```
 cisc814-cluster2 (k3d)
 │
 ├── namespace: default
@@ -73,15 +78,13 @@ cisc814-cluster2 (k3d)
 │         └── V2 pod (canary) ── 20% ──┴──► [Service :8000]
 │
 │         Canary Steps:
-│         20% ──► pause ──► 50% ──► pause ──► 80% ──► pause ──► 100% ✅
+│         20% → pause → 50% → pause → 80% → pause → 100% ✅
 │
 └── namespace: monitoring
-├── Prometheus ──scrapes──► Pushgateway
-├── Grafana ────queries──► Prometheus
-└── Dashboard: drift score | traffic split | latency
-
----
-
+      ├── Prometheus ──scrapes──► Pushgateway
+      ├── Grafana ────queries──► Prometheus
+      └── Dashboard: drift score | traffic | latency
+```
 ## 📊 Results
 
 ### Experiment Comparison
