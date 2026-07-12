@@ -11,7 +11,7 @@
 
 **End-to-end MLOps system: LLM experimentation → quantization → A/B testing → drift monitoring → canary deployment**
 
-[📊 MLflow](#-experiment-tracking) • [⚡ Quantization](#-quantization) • [🔀 A/B Testing](#-ab-testing) • [☸️ Kubernetes](#️-kubernetes-canary-deployment)
+[📊 MLflow](#-results) • [⚡ Quantization](#-results) • [🔀 A/B Testing](#-results) • [☸️ Kubernetes](#️-kubernetes-canary-deployment)
 
 </div>
 
@@ -21,6 +21,7 @@
 - [Overview](#-overview)
 - [Architecture](#-architecture)
 - [Results](#-results)
+- [Screenshots](#-screenshots)
 - [Tech Stack](#️-tech-stack)
 - [Project Structure](#-project-structure)
 - [Quick Start](#-quick-start)
@@ -43,10 +44,9 @@ A production-grade MLOps pipeline built around **Qwen2.5-1.5B** Large Language M
 
 ---
 
-##  Architecture
+## 🏗️ Architecture
 
 ### Part A — Model Serving Architecture
-
 
 [few_shot.py]  ──►  [MLflow Server]
 [quantize.py]  ──►    - Experiment Tracking
@@ -63,10 +63,8 @@ A production-grade MLOps pipeline built around **Qwen2.5-1.5B** Large Language M
 ▼
 [Evidently AI :8085]
 
-shell
 
 ### Part B — Kubernetes Architecture
-
 cisc814-cluster2 (k3d)
 │
 ├── namespace: default
@@ -81,8 +79,6 @@ cisc814-cluster2 (k3d)
 ├── Prometheus ──scrapes──► Pushgateway
 ├── Grafana ────queries──► Prometheus
 └── Dashboard: drift score | traffic split | latency
-
-yaml
 
 ---
 
@@ -107,15 +103,11 @@ yaml
 | Drift Score | 0.0 ✅ | 0.0 ✅ |
 
 ### Quantization Impact
-
 Model Size:   3.0GB ──▶ 1.08GB   (64% reduction 🎉)
 Accuracy:     0.90  ──▶ 0.90     (no loss ✅)
 Latency:      ~2.0s ──▶ 0.589s   (7x faster ⚡)
 
-shell
-
 ### Canary Deployment Steps
-
 V1 Deployed (100% stable)
 │
 ▼ Patch to V2
@@ -130,7 +122,37 @@ SetWeight: 80%  ──▶  pause
 ▼
 V2 Promoted ✅ (100% stable)
 
-yaml
+---
+
+## 📸 Screenshots
+
+### 🔬 MLflow — Quantization Experiment
+![MLflow Quantization](screenshots/mlflow-quantization.png)
+> GPTQ 4-bit quantization run: accuracy=0.90, size=1.08GB, latency=0.589s, method=gptq
+
+---
+
+### ⚡ vLLM — Live Model Serving
+![vLLM Serving](screenshots/vllm-serving.png)
+> Qwen2.5-1.5B served via vLLM with successful HTTP 200 sentiment prediction response
+
+---
+
+### 🔄 ArgoCD — GitOps Deployment Tree
+![ArgoCD Tree](screenshots/argocd-tree.png)
+> ArgoCD: Healthy ✅ | Synced ✅ | Auto-sync enabled | Full resource tree visible
+
+---
+
+### 📊 Grafana — Monitoring Dashboard
+![Grafana Dashboard](screenshots/grafana-dashboard.png)
+> Real-time metrics: Request Rate | Error Rate | Latency (p50/p95/p99) | CPU | Memory
+
+---
+
+### 🎯 Prometheus — Service Monitor Targets
+![Prometheus Targets](screenshots/prometheus-targets.png)
+> ServiceMonitor scraping 3/3 targets UP ✅ — all sentiment app pods monitored
 
 ---
 
@@ -146,50 +168,66 @@ yaml
 | **Containerization** | Docker |
 | **Orchestration** | Kubernetes (k3d) |
 | **Canary Deployment** | Argo Rollouts |
+| **GitOps** | ArgoCD |
 | **Monitoring** | Prometheus, Grafana |
-| **CI/CD** | Gitea Actions, ArgoCD |
+| **CI/CD** | Gitea Actions |
 | **Container Registry** | Docker Registry |
 
 ---
 
 ## 📁 Project Structure
-
+DevOps-and-MlOps-Pipeline/
+│
+├── screenshots/                              ← Project screenshots
+│   ├── mlflow-quantization.png
+│   ├── vllm-serving.png
+│   ├── argocd-tree.png
+│   ├── grafana-dashboard.png
+│   └── prometheus-targets.png
+│
 ├── assignment-2-mlops-pipeline/
 │   └── starter/ml-sentiment-app/
-│       ├── training/
+│       │
+│       ├── training/                         ← Part A: Experimentation
 │       │   ├── src/
-│       │   │   ├── train.py                  # MLflow setup
-│       │   │   ├── experiments/
-│       │   │   │   └── few_shot.py           # 1/3/5-shot experiments
-│       │   │   └── registration.py           # Model Registry
+│       │   │   ├── train.py                  ← MLflow setup
+│       │   │   ├── registration.py           ← Model Registry
+│       │   │   └── experiments/
+│       │   │       └── few_shot.py           ← 1/3/5-shot runs
 │       │   └── configs/
 │       │       └── experiment_config.yaml
-│       ├── quantization/
-│       │   └── quantize_model.py             # GPTQ 4-bit quantization
-│       ├── serving/
-│       │   ├── traffic_router.py             # FastAPI A/B router
-│       │   ├── predictions.jsonl             # All predictions log
-│       │   ├── v1_predictions.jsonl          # V1 logs
-│       │   └── v2_predictions.jsonl          # V2 logs
-│       ├── monitoring/
-│       │   ├── drift_detector.py             # Evidently AI drift
-│       │   ├── send_predictions.py           # Push to Evidently UI
-│       │   └── drift_report.html             # Generated report
-│       ├── k8s/
-│       │   ├── rollout.yaml                  # Argo Rollouts config
-│       │   ├── analysis-template.yaml        # Drift analysis job
-│       │   ├── service.yaml                  # Kubernetes service
-│       │   └── configmap.yaml                # App configuration
+│       │
+│       ├── quantization/                     ← Part A: Optimization
+│       │   └── quantize_model.py             ← GPTQ 4-bit (3GB→1.08GB)
+│       │
+│       ├── serving/                          ← Part B: A/B Testing
+│       │   ├── traffic_router.py             ← FastAPI 80/20 split
+│       │   ├── predictions.jsonl             ← 382 total predictions
+│       │   ├── v1_predictions.jsonl          ← V1 logs (200 requests)
+│       │   └── v2_predictions.jsonl          ← V2 logs (182 requests)
+│       │
+│       ├── monitoring/                       ← Part B: Drift Detection
+│       │   ├── drift_detector.py             ← Evidently AI
+│       │   ├── send_predictions.py           ← Push to Evidently UI
+│       │   ├── Dockerfile.analysis           ← Analysis container
+│       │   └── drift_report.html             ← Generated report
+│       │
+│       ├── k8s/                              ← Part B: Kubernetes
+│       │   ├── rollout.yaml                  ← Argo Rollouts canary
+│       │   ├── analysis-template.yaml        ← Drift analysis job
+│       │   ├── service.yaml
+│       │   ├── configmap.yaml
+│       │   ├── pushgateway-servicemonitor.yaml
+│       │   └── grafana-dashboard.yaml
+│       │
 │       └── data/
-│           ├── train_sentiment.csv           # 200 training samples
-│           └── eval_sentiment.csv            # 100 eval samples
+│           ├── train_sentiment.csv           ← 200 training samples
+│           └── eval_sentiment.csv            ← 100 eval samples
+│
 └── infrastructure/
-├── k3d/                                  # Cluster configs
-├── gitea/                                # CI/CD server
-└── otel/                                 # Observability
-
-yaml
-
+├── k3d/                                  ← Cluster configs
+├── gitea/                                ← CI/CD server
+└── otel/                                 ← Observability
 ---
 
 ## 🚀 Quick Start
@@ -204,45 +242,29 @@ helm version            # Helm 3+
 python3 --version       # Python 3.11+
 
 1. Start MLflow Server
-
-bash
 mlflow server \
   --backend-store-uri postgresql://mlflow:mlflow@localhost:5432/mlflow \
   --default-artifact-root mlflow-artifacts:/ \
   --host 0.0.0.0 --port 5050
-
 # UI: http://localhost:5050
-
 2. Run Few-Shot Experiments
-
-bash
 cd training
 source venv/bin/activate
 python src/experiments/few_shot.py
-
 # Runs: 1-shot (acc=0.90) | 3-shot (acc=1.0) | 5-shot (acc=1.0)
-
 3. Quantize Model (GPTQ 4-bit)
-
-bash
 cd quantization
 source ../venv-quantization/bin/activate
 python quantize_model.py
-
 # Output: ./qwen2.5-1.5b-gptq-4bit/ (1.08GB)
 
 4. Register Models
-
-bash
 cd training
 python src/registration.py
-
 # champion:   Qwen2.5-1.5B fp16
 # challenger: Qwen2.5-1.5B GPTQ 4-bit
 
 5. Start A/B Traffic Router
-
-bash
 cd serving
 uvicorn traffic_router:app --host 0.0.0.0 --port 8000
 
@@ -253,19 +275,12 @@ curl -X POST http://localhost:8000/predict \
 
 # Check stats
 curl http://localhost:8000/stats
-
 6. Run Drift Detection
-
-bash
 cd monitoring
 python drift_detector.py
-
 # Report: monitoring/drift_report.html
 # UI:     http://localhost:8085
-
 7. Deploy to Kubernetes
-
-bash
 # Create k3d cluster
 k3d cluster create cisc814-cluster2
 
@@ -277,28 +292,39 @@ kubectl apply -n argo-rollouts \
 # Apply manifests
 kubectl apply -f k8s/
 
-# Watch initial V1 rollout
+# Watch V1 rollout
 kubectl argo rollouts get rollout sentiment-model --watch
 
-# Trigger canary (V1 → V2)
+# Trigger canary V1 → V2
 kubectl argo rollouts set image sentiment-model \
   sentiment=localhost:5001/sentiment-mock:v2
 
 # Promote through steps
 kubectl argo rollouts promote sentiment-model
 
-📚 Assignment Details
-Part A — MLflow Experimentation ✅
+Key Learnings
+Quantization can dramatically reduce serving costs with minimal accuracy loss
 
-    Task 1: MLflow Setup & Configuration
-    Task 2: Few-Shot Experiments (1/3/5-shot with Qwen2.5-1.5B)
-    Task 3: GPTQ 4-bit Quantization (64% size reduction)
-    Task 4: Model Registry (champion fp16 + challenger GPTQ)
+A/B testing reveals real production differences invisible in offline evaluation
 
-Part B — Production MLOps ✅
+Canary deployments make production changes safe and reversible
 
-    Task 1: Model Serving with vLLM (V1 fp16 + V2 GPTQ)
-    Task 2: A/B Testing (80/20 traffic split, 382 predictions)
-    Task 3: Drift Monitoring (Evidently AI, drift score = 0.0)
-    Task 4: k3d + Argo Rollouts Canary Deployment (6 steps)
-    Task 5: Report + Video Demo
+✅ 100% accuracy with 3-shot prompting
+✅ 64% model size reduction via GPTQ
+✅ 7x faster inference after quantization
+✅ Zero drift detected between V1 and V2
+✅ Successful canary: 20% → 50% → 80% → 100%
+✅ ArgoCD: Healthy + Synced
+✅ Prometheus: 3/3 targets UP
+
+
+Drift monitoring is essential for LLM reliability in production
+
+
+👩‍💻 Author
+Aya Abdallah
+Mechatronics Engineering
+Queen's University — CISC-814, Summer 2026
+
+GitHub
+
