@@ -176,9 +176,11 @@ V2 Promoted ✅ (100% stable)
 ---
 
 ## 📁 Project Structure
+
+```
 DevOps-and-MlOps-Pipeline/
 │
-├── screenshots/                              ← Project screenshots
+├── screenshots/
 │   ├── mlflow-quantization.png
 │   ├── vllm-serving.png
 │   ├── argocd-tree.png
@@ -187,48 +189,39 @@ DevOps-and-MlOps-Pipeline/
 │
 ├── assignment-2-mlops-pipeline/
 │   └── starter/ml-sentiment-app/
-│       │
-│       ├── training/                         ← Part A: Experimentation
+│       ├── training/
 │       │   ├── src/
-│       │   │   ├── train.py                  ← MLflow setup
-│       │   │   ├── registration.py           ← Model Registry
+│       │   │   ├── train.py
+│       │   │   ├── registration.py
 │       │   │   └── experiments/
-│       │   │       └── few_shot.py           ← 1/3/5-shot runs
+│       │   │       └── few_shot.py
 │       │   └── configs/
 │       │       └── experiment_config.yaml
-│       │
-│       ├── quantization/                     ← Part A: Optimization
-│       │   └── quantize_model.py             ← GPTQ 4-bit (3GB→1.08GB)
-│       │
-│       ├── serving/                          ← Part B: A/B Testing
-│       │   ├── traffic_router.py             ← FastAPI 80/20 split
-│       │   ├── predictions.jsonl             ← 382 total predictions
-│       │   ├── v1_predictions.jsonl          ← V1 logs (200 requests)
-│       │   └── v2_predictions.jsonl          ← V2 logs (182 requests)
-│       │
-│       ├── monitoring/                       ← Part B: Drift Detection
-│       │   ├── drift_detector.py             ← Evidently AI
-│       │   ├── send_predictions.py           ← Push to Evidently UI
-│       │   ├── Dockerfile.analysis           ← Analysis container
-│       │   └── drift_report.html             ← Generated report
-│       │
-│       ├── k8s/                              ← Part B: Kubernetes
-│       │   ├── rollout.yaml                  ← Argo Rollouts canary
-│       │   ├── analysis-template.yaml        ← Drift analysis job
+│       ├── quantization/
+│       │   └── quantize_model.py
+│       ├── serving/
+│       │   ├── traffic_router.py
+│       │   ├── predictions.jsonl
+│       │   ├── v1_predictions.jsonl
+│       │   └── v2_predictions.jsonl
+│       ├── monitoring/
+│       │   ├── drift_detector.py
+│       │   ├── send_predictions.py
+│       │   └── drift_report.html
+│       ├── k8s/
+│       │   ├── rollout.yaml
+│       │   ├── analysis-template.yaml
 │       │   ├── service.yaml
-│       │   ├── configmap.yaml
-│       │   ├── pushgateway-servicemonitor.yaml
-│       │   └── grafana-dashboard.yaml
-│       │
+│       │   └── configmap.yaml
 │       └── data/
-│           ├── train_sentiment.csv           ← 200 training samples
-│           └── eval_sentiment.csv            ← 100 eval samples
+│           ├── train_sentiment.csv
+│           └── eval_sentiment.csv
 │
 └── infrastructure/
-├── k3d/                                  ← Cluster configs
-├── gitea/                                ← CI/CD server
-└── otel/                                 ← Observability
----
+    ├── k3d/
+    ├── gitea/
+    └── otel/
+```
 
 ## 🚀 Quick Start
 
